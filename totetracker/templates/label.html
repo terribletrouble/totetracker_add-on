@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Label — {{ box.label }}</title>
+<style>
+  @page { size: {{ w_in }}in {{ h_in }}in; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: Helvetica, Arial, sans-serif; background: #e5e5e5; }
+  .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px 16px; background: #fff; border-bottom: 1px solid #ccc; }
+  .toolbar select, .toolbar button, .toolbar a.btn { font-size: .9rem; padding: 8px 14px; border-radius: 6px; border: 1px solid #888; background: #fff; color: #111; text-decoration: none; cursor: pointer; }
+  .toolbar button.primary { background: #111; color: #fff; border-color: #111; font-weight: 600; }
+  .hint { font-size: .75rem; color: #666; width: 100%; }
+  .stage { padding: 24px; display: flex; justify-content: center; }
+  .label { width: {{ w_in }}in; height: {{ h_in }}in; max-width: 100%; background: #fff; box-shadow: 0 2px 12px rgba(0,0,0,.25); }
+  .label img { display: block; width: 100%; height: 100%; }
+  @media print {
+    body { background: #fff; }
+    .toolbar { display: none !important; }
+    .stage { padding: 0; display: block; }
+    .label { box-shadow: none; max-width: none; }
+  }
+</style>
+</head>
+<body>
+<div class="toolbar">
+  <strong>Tote {{ box.label }}</strong>
+  <select onchange="location.href='?size='+this.value+'&orient={{ orient }}'">
+    {% for key, s in sizes.items() %}<option value="{{ key }}" {{ 'selected' if key == size else '' }}>{{ s[2] }}</option>{% endfor %}
+  </select>
+  <select onchange="location.href='?size={{ size }}&orient='+this.value">
+    {% for key, name in orients.items() %}<option value="{{ key }}" {{ 'selected' if key == orient else '' }}>{{ name }}</option>{% endfor %}
+  </select>
+  <button class="primary" onclick="window.print()">🖨 Print (this device)</button>
+  <a class="btn" href="{{ base }}/api/boxes/{{ box.id }}/label.pdf?size={{ size }}&orient={{ orient }}" target="_blank">PDF</a>
+  <a class="btn" href="{{ base }}/{{ ref }}">← Tote</a>
+  <div class="hint">This is exactly what the label printer receives. For the label printer use "Print Label" in the app. This page is a preview and a fallback for printing through your computer's own driver: choose the matching paper size and set margins to None.</div>
+</div>
+<div class="stage">
+  <div class="label"><img src="{{ base }}/api/boxes/{{ box.id }}/label.png?size={{ size }}&orient={{ orient }}" alt="Label preview"></div>
+</div>
+</body>
+</html>

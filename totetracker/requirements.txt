@@ -1,0 +1,6 @@
+flask>=3.0.0
+requests>=2.31.0
+werkzeug>=3.0.0
+segno>=1.6.0
+reportlab>=4.0.0
+pillow>=10.0.0

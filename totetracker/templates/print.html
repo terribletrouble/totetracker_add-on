@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ToteTracker — {{ title }}</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, Helvetica, Arial, sans-serif;
+    color: #111;
+    margin: 0;
+    padding: 24px;
+    background: #fff;
+  }
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #111;
+  }
+  .toolbar h1 { font-size: 1.3rem; margin: 0; }
+  .toolbar .meta { font-size: 0.75rem; color: #666; margin-top: 2px; }
+  .print-btn {
+    background: #111;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .location-block { margin-bottom: 28px; }
+  .location-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 6px 0;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #999;
+  }
+
+  .tote {
+    display: flex;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px dashed #ccc;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .tote-info { flex: 1; min-width: 0; }
+  .tote-label { font-size: 1rem; font-weight: 700; }
+  .tote-contents {
+    font-size: 0.85rem;
+    color: #222;
+    margin-top: 3px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .tote-ai {
+    font-size: 0.78rem;
+    color: #333;
+    margin-top: 3px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .tote-ai::before { content: "AI: "; font-weight: 700; }
+  .no-contents { font-size: 0.8rem; color: #999; font-style: italic; margin-top: 3px; }
+
+  .tote-photos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-width: 220px;
+    flex-shrink: 0;
+    align-content: flex-start;
+  }
+  .tote-photos img {
+    width: 52px;
+    height: 52px;
+    object-fit: cover;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+  }
+  .photo-more {
+    width: 52px; height: 52px;
+    border: 1px dashed #ccc;
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; color: #888;
+  }
+
+  .tote-qr { width: 0.75in; height: 0.75in; flex-shrink: 0; align-self: flex-start; }
+
+  .empty { color: #888; font-style: italic; padding: 20px 0; }
+
+  @media print {
+    body { padding: 0.4in; }
+    .no-print { display: none !important; }
+    .location-block { break-after: auto; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="toolbar no-print">
+    <div>
+      <h1>ToteTracker — {{ title }}</h1>
+      <div class="meta">Generated {{ generated }} · {{ boxes|length }} tote{{ '' if boxes|length == 1 else 's' }}</div>
+    </div>
+    <button class="print-btn" onclick="window.print()">🖨 Print / Save as PDF</button>
+  </div>
+
+  {% if not boxes %}
+    <div class="empty">No totes found for this location.</div>
+  {% else %}
+    {% set ns = namespace(current_loc=None) %}
+    {% for box in boxes %}
+      {% set loc = (box.location or '').strip() %}
+      {% set loc_display = loc if loc else 'No Location' %}
+      {% if loc_display != ns.current_loc %}
+        {% if ns.current_loc is not none %}</div>{% endif %}
+        <div class="location-block">
+          <div class="location-title">📍 {{ loc_display }}</div>
+        {% set ns.current_loc = loc_display %}
+      {% endif %}
+
+      <div class="tote">
+        <div class="tote-info">
+          <div class="tote-label">{{ box.label }}</div>
+          {% if box.contents %}
+            <div class="tote-contents">{{ box.contents }}</div>
+          {% endif %}
+          {% if box.ai_contents %}
+            <div class="tote-ai">{{ box.ai_contents }}</div>
+          {% endif %}
+          {% if not box.contents and not box.ai_contents %}
+            <div class="no-contents">No description recorded</div>
+          {% endif %}
+        </div>
+        {% set img_atts = [] %}
+        {% for a in box.attachments %}
+          {% if is_image(a.filename) %}
+            {% set _ = img_atts.append(a) %}
+          {% endif %}
+        {% endfor %}
+        {% if img_atts %}
+        <div class="tote-photos">
+          {% for a in img_atts[:6] %}
+            <img src="{{ base }}/files/{{ box.folder }}/{{ a.filename }}" alt="">
+          {% endfor %}
+          {% if img_atts|length > 6 %}
+            <div class="photo-more">+{{ img_atts|length - 6 }}</div>
+          {% endif %}
+        </div>
+        {% endif %}
+        <img class="tote-qr" src="{{ base }}/qr/{{ box.id }}.svg" alt="QR">
+      </div>
+    {% endfor %}
+    </div>
+  {% endif %}
+
+</body>
+</html>

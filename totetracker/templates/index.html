@@ -1,0 +1,1599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a1a2e">
+<title>ToteTracker</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+  :root {
+    --bg:        #0f0f1a;
+    --surface:   #1a1a2e;
+    --surface2:  #16213e;
+    --border:    #2a2a4a;
+    --accent:    #e94560;
+    --accent2:   #0f3460;
+    --accent3:   #f5a623;
+    --text:      #e8e8f0;
+    --muted:     #7878a0;
+    --green:     #4ecca3;
+    --radius:    12px;
+    --shadow:    0 4px 24px rgba(0,0,0,.5);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    overscroll-behavior: none;
+  }
+
+  /* ── Layout ── */
+  #app { display: flex; flex-direction: column; height: 100dvh; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
+    position: sticky; top: 0; z-index: 100;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+    white-space: nowrap;
+  }
+  .logo span { color: var(--green); }
+
+  #search-bar {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  #search-bar:focus { border-color: var(--accent); }
+  #search-bar::placeholder { color: var(--muted); }
+
+  #btn-add {
+    background: var(--accent);
+    border: none;
+    border-radius: 8px;
+    color: #fff;
+    padding: 8px 14px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+  }
+  #btn-add:active { opacity: 0.8; }
+
+  #btn-print {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: border-color 0.2s;
+  }
+  #btn-print:active { opacity: 0.8; }
+  #btn-print:hover { border-color: var(--accent3); }
+
+  #ai-badge {
+    font-size: 0.7rem;
+    font-family: 'Space Mono', monospace;
+    padding: 3px 7px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  #ai-badge.ready { color: var(--green); border-color: var(--green); }
+
+  /* ── Box Grid ── */
+  #main { flex: 1; overflow-y: auto; padding: 16px; }
+
+  #empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  #empty-state .big { font-size: 3rem; margin-bottom: 12px; }
+  #empty-state p { font-size: 1rem; }
+
+  #box-grid { display: flex; flex-direction: column; gap: 24px; }
+
+  .location-section-title {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: var(--accent3);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .location-section-title .loc-count {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    text-transform: none;
+    letter-spacing: normal;
+  }
+
+  .location-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 14px;
+  }
+
+  .box-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s, border-color 0.15s;
+  }
+  .box-card:active { transform: scale(0.98); }
+  .box-card:hover  { border-color: var(--accent); }
+
+  .card-header {
+    padding: 14px 16px 10px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .box-label {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--text);
+    word-break: break-word;
+  }
+
+  .box-location {
+    font-size: 0.75rem;
+    color: var(--accent3);
+    font-family: 'Space Mono', monospace;
+    margin-top: 2px;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .btn-icon {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    width: 32px; height: 32px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .btn-icon:hover { color: var(--text); border-color: var(--text); }
+  .btn-icon.danger:hover { color: var(--accent); border-color: var(--accent); }
+
+  .card-qr {
+    width: 56px; height: 56px; flex-shrink: 0;
+    border-radius: 4px; background: #fff;
+  }
+  .card-body { display: flex; gap: 12px; align-items: flex-start; padding-right: 16px; }
+  .card-body .card-main { flex: 1; min-width: 0; }
+  .card-body .card-contents { padding-right: 0; }
+
+  .view-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+  .view-qr { width: 96px; height: 96px; border-radius: 6px; background: #fff; flex-shrink: 0; }
+  .view-meta { font-size: 0.75rem; color: var(--muted); font-family: 'Space Mono', monospace; margin-top: 4px; }
+
+  .printer-status { font-size: 0.78rem; margin-top: 6px; color: var(--muted); }
+  .printer-status.err { color: var(--accent); }
+
+  .card-contents {
+    padding: 0 16px 10px;
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.5;
+    max-height: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+
+  .card-ai {
+    margin: 0 16px 10px;
+    padding: 8px 10px;
+    background: rgba(78,204,163,0.08);
+    border: 1px solid rgba(78,204,163,0.2);
+    border-radius: 6px;
+    font-size: 0.78rem;
+    color: var(--green);
+    font-family: 'Space Mono', monospace;
+    max-height: 56px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+  }
+  .card-ai::before { content: '🤖 '; }
+
+  .card-thumbs {
+    display: flex;
+    gap: 6px;
+    padding: 0 16px 14px;
+    overflow-x: auto;
+  }
+  .card-thumbs::-webkit-scrollbar { display: none; }
+  .thumb {
+    width: 52px; height: 52px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .thumb-count {
+    width: 52px; height: 52px;
+    border-radius: 6px;
+    background: var(--bg);
+    border: 1px dashed var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    color: var(--muted);
+    flex-shrink: 0;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* ── Modal Overlay ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius) var(--radius) 0 0;
+    width: 100%;
+    max-width: 600px;
+    max-height: 92dvh;
+    overflow-y: auto;
+    transform: translateY(100%);
+    transition: transform 0.3s cubic-bezier(.4,0,.2,1);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+  .modal-overlay.open .modal { transform: translateY(0); }
+
+  .modal-handle {
+    width: 40px; height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 12px auto 0;
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+  }
+  .btn-close {
+    background: none; border: none;
+    color: var(--muted); font-size: 1.3rem;
+    cursor: pointer; padding: 4px;
+    line-height: 1;
+  }
+
+  .modal-body { padding: 20px; }
+
+  /* ── Form ── */
+  .form-group { margin-bottom: 18px; }
+  label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 6px;
+  }
+  input[type=text], textarea, select {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: vertical;
+  }
+  input[type=text]:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  select { appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%237878a0'><path d='M7 10l5 5 5-5z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 18px;
+    padding-right: 34px;
+  }
+
+  textarea { min-height: 100px; }
+
+  .ai-field {
+    background: rgba(78,204,163,0.05);
+    border-color: rgba(78,204,163,0.2);
+  }
+  .ai-field:focus { border-color: var(--green) !important; }
+
+  .field-hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 5px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* ── Upload Zone ── */
+  .upload-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+    position: relative;
+  }
+  .upload-zone:hover, .upload-zone.drag { border-color: var(--accent); background: rgba(233,69,96,0.04); }
+  .upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-zone .uz-icon { font-size: 2rem; margin-bottom: 8px; }
+  .upload-zone .uz-text { font-size: 0.9rem; color: var(--muted); }
+  .upload-zone .uz-text strong { color: var(--accent); }
+  .uz-camera-note { font-size: 0.75rem; color: var(--accent3); margin-top: 6px; font-family: 'Space Mono', monospace; }
+
+  /* ── Attachments ── */
+  .attachments-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .att-item {
+    position: relative;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    aspect-ratio: 1;
+  }
+  .att-item img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    cursor: pointer;
+  }
+  .att-item .att-filename {
+    padding: 6px;
+    font-size: 0.65rem;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    word-break: break-all;
+    text-align: center;
+  }
+  .att-del {
+    position: absolute; top: 4px; right: 4px;
+    background: rgba(233,69,96,0.9);
+    border: none; border-radius: 50%;
+    color: #fff; width: 22px; height: 22px;
+    font-size: 0.7rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .att-analyze {
+    position: absolute; bottom: 4px; right: 4px;
+    background: rgba(78,204,163,0.9);
+    border: none; border-radius: 4px;
+    color: #000; padding: 2px 5px;
+    font-size: 0.6rem; font-weight: 700; cursor: pointer;
+    font-family: 'Space Mono', monospace;
+  }
+  .att-ai-desc {
+    font-size: 0.7rem;
+    color: var(--green);
+    font-family: 'Space Mono', monospace;
+    padding: 4px 6px 6px;
+    line-height: 1.3;
+    border-top: 1px solid var(--border);
+    max-height: 60px;
+    overflow: hidden;
+  }
+
+  /* ── Buttons ── */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+  .btn {
+    border: none; border-radius: 8px;
+    padding: 12px 20px;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    flex: 1;
+  }
+  .btn:active { opacity: 0.8; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .btn-danger { background: rgba(233,69,96,0.15); color: var(--accent); border: 1px solid rgba(233,69,96,0.3); }
+  .btn-green { background: rgba(78,204,163,0.15); color: var(--green); border: 1px solid rgba(78,204,163,0.3); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  /* ── View Modal special ── */
+  .view-label {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .view-location {
+    font-size: 0.85rem;
+    color: var(--accent3);
+    font-family: 'Space Mono', monospace;
+    margin-bottom: 16px;
+  }
+  .view-section { margin-bottom: 20px; }
+  .view-section-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .view-section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .view-contents {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .view-ai {
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--green);
+    font-family: 'Space Mono', monospace;
+    background: rgba(78,204,163,0.06);
+    border: 1px solid rgba(78,204,163,0.2);
+    border-radius: 8px;
+    padding: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  /* ── Lightbox ── */
+  #lightbox {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.95);
+    z-index: 500;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox img { max-width: 95vw; max-height: 85dvh; border-radius: 8px; object-fit: contain; }
+  #lightbox-close {
+    position: absolute; top: 16px; right: 16px;
+    background: rgba(255,255,255,0.1);
+    border: none; color: #fff; font-size: 1.5rem;
+    width: 40px; height: 40px; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  #lightbox-caption {
+    margin-top: 12px;
+    font-size: 0.8rem;
+    font-family: 'Space Mono', monospace;
+    color: var(--muted);
+    max-width: 90vw;
+    text-align: center;
+  }
+
+  /* ── Toast ── */
+  #toast {
+    position: fixed; bottom: 24px; left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 0.85rem;
+    color: var(--text);
+    z-index: 600;
+    transition: transform 0.3s;
+    pointer-events: none;
+    white-space: nowrap;
+    font-family: 'Space Mono', monospace;
+  }
+  #toast.show { transform: translateX(-50%) translateY(0); }
+  #toast.success { border-color: var(--green); color: var(--green); }
+  #toast.error   { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Upload progress ── */
+  .uploading-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 400;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .uploading-overlay.show { display: flex; }
+  .spin {
+    width: 40px; height: 40px;
+    border: 3px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .uploading-text { color: var(--text); font-family: 'Space Mono', monospace; font-size: 0.85rem; }
+
+  /* ── Stats bar ── */
+  #stats-bar {
+    padding: 8px 16px;
+    font-size: 0.75rem;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* ── Confirm dialog ── */
+  .confirm-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    max-width: 320px;
+    margin: 0 auto;
+    text-align: center;
+  }
+  .confirm-box p { margin-bottom: 16px; line-height: 1.5; }
+
+  /* ── Location manage list ── */
+  .loc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    font-size: 0.9rem;
+  }
+  .loc-row .loc-del {
+    background: none; border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 2px 6px;
+  }
+  .loc-row .loc-del:hover { color: var(--accent); }
+  .loc-empty { color: var(--muted); font-size: 0.85rem; padding: 8px 0; }
+
+  @media (min-width: 600px) {
+    .modal { border-radius: var(--radius); margin: auto; }
+    .modal-overlay { align-items: center; }
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header>
+    <div class="header-top">
+      <div class="logo">Tote<span>Tracker</span></div>
+      <div class="header-actions">
+        <div id="ai-badge">AI ✗</div>
+        <button id="btn-print" title="Print a location list" onclick="openPrintModal()">🖨</button>
+        <button id="btn-add" onclick="openAddModal()">+ Add</button>
+      </div>
+    </div>
+    <input type="search" id="search-bar" placeholder="Search boxes…" autocomplete="off">
+  </header>
+
+  <div id="stats-bar">
+    <span id="stats-count">0 boxes</span>
+    <span id="stats-search" style="display:none;color:var(--accent3)">Searching…</span>
+  </div>
+
+  <div id="main">
+    <div id="empty-state" style="display:none">
+      <div class="big">📦</div>
+      <p>No boxes yet. Tap <strong>+ Add</strong> to create your first one!</p>
+    </div>
+    <div id="box-grid"></div>
+  </div>
+</div>
+
+<!-- ══ ADD / EDIT MODAL ══ -->
+<div class="modal-overlay" id="edit-overlay" onclick="closeOnBackdrop(event,'edit-overlay')">
+  <div class="modal" id="edit-modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title" id="edit-title">Add Box</span>
+      <button class="btn-close" onclick="closeModal('edit-overlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="edit-id">
+
+      <div class="form-group">
+        <label>Box Label *</label>
+        <input type="text" id="edit-label" placeholder="e.g. Box-1, Kitchen Stuff, Holiday Decor">
+      </div>
+
+      <div class="form-group">
+        <label>Location</label>
+        <select id="edit-location" onchange="handleLocationChange()"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Label Size</label>
+        <select id="edit-label-size">
+          <option value="4x6">Large tote — 4 × 6 in label</option>
+          <option value="3x2">Small tote — 3 × 2 in label</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Label Orientation</label>
+        <select id="edit-label-orient">
+          <option value="landscape">Landscape</option>
+          <option value="portrait">Portrait</option>
+        </select>
+        <div class="field-hint">Used when printing this tote's label. Name your totes like <b>269 - Electrical Switch Plates</b> — the number prints huge, the rest as the description, then location, contents and the QR code. The number before the dash is the bin number: it must be unique and is what the QR code links to.</div>
+      </div>
+
+      <div class="form-group">
+        <label>Contents (manual notes)</label>
+        <textarea id="edit-contents" placeholder="Type what's in this box…"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label>AI Analyzed Contents <span style="color:var(--green)">🤖</span></label>
+        <textarea id="edit-ai" class="ai-field" placeholder="Upload photos then tap 'Analyze with AI' — or type/edit manually."></textarea>
+        <div class="field-hint">✏️ Editable — correct any mistakes the AI makes</div>
+      </div>
+
+      <div class="form-group" id="attach-group">
+        <label>Attachments (<span id="att-count">0</span>/10)</label>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="file-input" multiple accept="image/*,video/*,.heic,.heif"
+                 capture="environment" onchange="handleFileSelect(event)">
+          <div class="uz-icon">📷</div>
+          <div class="uz-text"><strong>Tap to take photo</strong> or upload files</div>
+          <div class="uz-camera-note">📱 On mobile: opens camera directly</div>
+        </div>
+        <div class="attachments-grid" id="attach-preview"></div>
+      </div>
+
+      <div class="btn-row" style="margin-bottom: 8px;">
+        <button class="btn btn-green" id="btn-analyze" onclick="analyzeAll()" style="display:none">
+          🤖 Analyze with AI
+        </button>
+      </div>
+      <div id="analyze-status" style="display:none; font-size:0.78rem; color:var(--green); font-family:'Space Mono',monospace; margin-bottom:10px; padding: 6px 10px; background:rgba(78,204,163,0.08); border-radius:6px; border:1px solid rgba(78,204,163,0.2);"></div>
+
+      <div class="btn-row" id="edit-btns">
+        <button class="btn btn-secondary" onclick="closeModal('edit-overlay')">Cancel</button>
+        <button class="btn btn-primary" id="btn-save" onclick="saveBox()">Save Box</button>
+      </div>
+      <div class="btn-row" id="delete-btn-row" style="display:none; margin-top: 8px;">
+        <button class="btn btn-danger" onclick="confirmDeleteBox()">🗑 Delete This Box</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ VIEW MODAL ══ -->
+<div class="modal-overlay" id="view-overlay" onclick="closeOnBackdrop(event,'view-overlay')">
+  <div class="modal" id="view-modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">Box Details</span>
+      <button class="btn-close" onclick="closeModal('view-overlay')">✕</button>
+    </div>
+    <div class="modal-body" id="view-body"></div>
+  </div>
+</div>
+
+<!-- ══ PRINT MODAL ══ -->
+<div class="modal-overlay" id="print-overlay" onclick="closeOnBackdrop(event,'print-overlay')">
+  <div class="modal" id="print-modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">🖨 Print a List</span>
+      <button class="btn-close" onclick="closeModal('print-overlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Location</label>
+        <select id="print-location">
+          <option value="__all__">All Locations</option>
+        </select>
+        <div class="field-hint">Opens a printer-friendly page in a new tab — includes photos.</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="closeModal('print-overlay')">Cancel</button>
+        <button class="btn btn-primary" onclick="goToPrintPage()">Open Print View</button>
+      </div>
+
+      <div class="form-group" style="margin-top:24px">
+        <label>Manage Locations</label>
+        <div id="location-manage-list"></div>
+        <div class="field-hint">Locations still used by a tote can't be deleted.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LABEL PRINT MODAL ══ -->
+<div class="modal-overlay" id="label-overlay" onclick="closeOnBackdrop(event,'label-overlay')">
+  <div class="modal" id="label-modal">
+    <div class="modal-handle"></div>
+    <div class="modal-header">
+      <span class="modal-title">🏷 Print Label</span>
+      <button class="btn-close" onclick="closeModal('label-overlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="label-box-id">
+      <div class="form-group">
+        <label>Tote</label>
+        <div id="label-box-name" style="font-weight:800;font-size:1.1rem"></div>
+      </div>
+      <div class="form-group">
+        <label>Printer</label>
+        <select id="label-printer" onchange="rememberPrinter()"></select>
+        <div class="printer-status" id="printer-status"></div>
+      </div>
+      <div class="form-group">
+        <label>Label Size</label>
+        <select id="label-size">
+          <option value="4x6">Large — 4 × 6 in</option>
+          <option value="3x2">Small — 3 × 2 in</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Orientation</label>
+        <select id="label-orient">
+          <option value="landscape">Landscape</option>
+          <option value="portrait">Portrait</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Copies</label>
+        <input type="text" inputmode="numeric" id="label-copies" value="1">
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-secondary" onclick="previewLabel()">Preview</button>
+        <button class="btn btn-primary" id="btn-send-label" onclick="sendLabel()">🖨 Print</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ LIGHTBOX ══ -->
+<div id="lightbox">
+  <button id="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="">
+  <div id="lightbox-caption"></div>
+</div>
+
+<!-- ══ UPLOADING OVERLAY ══ -->
+<div class="uploading-overlay" id="uploading-overlay">
+  <div class="spin"></div>
+  <div class="uploading-text" id="uploading-text">Uploading & analyzing…</div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div id="toast"></div>
+
+<script>
+const BASE = {{ base|tojson }};   // '' normally; '/api/hassio_ingress/<token>' inside Home Assistant
+// ── State ──────────────────────────────────────────────────────────────────
+let allBoxes   = [];
+let allLocations = [];
+let editingId  = null;
+let pendingFiles = [];
+let searchTimer = null;
+
+// ── Init ───────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  loadBoxes();
+  loadLocations();
+  checkOllama();
+
+  document.getElementById('search-bar').addEventListener('input', e => {
+    clearTimeout(searchTimer);
+    document.getElementById('stats-search').style.display = 'inline';
+    searchTimer = setTimeout(() => loadBoxes(e.target.value.trim()), 400);
+  });
+
+  // Drag & drop
+  const zone = document.getElementById('upload-zone');
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('drag');
+    addPendingFiles(Array.from(e.dataTransfer.files));
+  });
+});
+
+// ── API ────────────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const res = await fetch(BASE + path, {
+    headers: { 'Content-Type': 'application/json' },
+    ...opts
+  });
+  return res.json();
+}
+
+async function loadBoxes(q = '') {
+  const url = q ? `/api/boxes?q=${encodeURIComponent(q)}` : '/api/boxes';
+  allBoxes = await api(url);
+  renderGrid(allBoxes);
+  document.getElementById('stats-count').textContent = `${allBoxes.length} box${allBoxes.length !== 1 ? 'es' : ''}`;
+  document.getElementById('stats-search').style.display = 'none';
+}
+
+async function checkOllama() {
+  try {
+    const data = await api('/api/ollama/status');
+    const badge = document.getElementById('ai-badge');
+    if (data.ok && data.vision_ready) {
+      badge.textContent = 'AI ✓';
+      badge.classList.add('ready');
+      badge.title = 'Ollama vision model ready';
+    } else if (data.ok) {
+      badge.textContent = 'AI ~';
+      badge.title = 'Ollama connected but vision model may not be loaded yet';
+    } else {
+      badge.textContent = 'AI ✗';
+      badge.title = 'Ollama not reachable';
+    }
+  } catch {}
+}
+
+// ── Locations ──────────────────────────────────────────────────────────────
+async function loadLocations() {
+  allLocations = await api('/api/locations');
+}
+
+function populateLocationSelect(selected = '') {
+  const sel = document.getElementById('edit-location');
+  const names = allLocations.map(l => l.name);
+  // Preserve a legacy/unknown location value so editing doesn't wipe it out
+  if (selected && !names.includes(selected)) names.push(selected);
+  sel.innerHTML = '<option value="">— No location —</option>' +
+    names.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('') +
+    '<option value="__add__">+ Add new location…</option>';
+  sel.value = selected || '';
+}
+
+async function handleLocationChange() {
+  const sel = document.getElementById('edit-location');
+  if (sel.value !== '__add__') return;
+  const name = (prompt('New location name (e.g. Barn, Basement, Kitchen):') || '').trim();
+  if (!name) { populateLocationSelect(''); return; }
+  const res = await api('/api/locations', { method: 'POST', body: JSON.stringify({ name }) });
+  if (res.error) {
+    toast(res.error, 'error');
+    populateLocationSelect('');
+    return;
+  }
+  await loadLocations();
+  populateLocationSelect(res.name);
+  toast(`Added location "${res.name}"`, 'success');
+}
+
+function populatePrintLocationSelect() {
+  const sel = document.getElementById('print-location');
+  sel.innerHTML = '<option value="__all__">All Locations</option>' +
+    allLocations.map(l => `<option value="${esc(l.name)}">${esc(l.name)}</option>`).join('');
+}
+
+function renderLocationManageList() {
+  const box = document.getElementById('location-manage-list');
+  if (!allLocations.length) {
+    box.innerHTML = '<div class="loc-empty">No locations yet — add one from the Add/Edit box form.</div>';
+    return;
+  }
+  box.innerHTML = allLocations.map(l => `
+    <div class="loc-row">
+      <span>${esc(l.name)}</span>
+      <button class="loc-del" title="Delete location" onclick="deleteLocation(${l.id}, '${esc(l.name)}')">🗑</button>
+    </div>
+  `).join('');
+}
+
+async function deleteLocation(id, name) {
+  if (!confirm(`Delete location "${name}"?`)) return;
+  const res = await api(`/api/locations/${id}`, { method: 'DELETE' });
+  if (res.error) {
+    toast(res.error, 'error');
+    return;
+  }
+  await loadLocations();
+  renderLocationManageList();
+  populatePrintLocationSelect();
+  toast('Location deleted', 'success');
+}
+
+function openPrintModal() {
+  populatePrintLocationSelect();
+  renderLocationManageList();
+  openModal('print-overlay');
+}
+
+function goToPrintPage() {
+  const loc = document.getElementById('print-location').value;
+  window.open(BASE + `/print?location=${encodeURIComponent(loc)}`, '_blank');
+}
+
+// ── Grid ───────────────────────────────────────────────────────────────────
+function renderGrid(boxes) {
+  const grid = document.getElementById('box-grid');
+  const empty = document.getElementById('empty-state');
+
+  if (!boxes.length) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  // Group boxes by location, preserving the order they arrive in (backend
+  // already sorts by the saved location order for the default listing).
+  const groups = [];
+  const groupIndex = new Map();
+  boxes.forEach(b => {
+    const loc = (b.location || '').trim() || 'No Location';
+    if (!groupIndex.has(loc)) {
+      groupIndex.set(loc, groups.length);
+      groups.push({ loc, items: [] });
+    }
+    groups[groupIndex.get(loc)].items.push(b);
+  });
+
+  grid.innerHTML = groups.map(g => `
+    <div>
+      <div class="location-section-title">📍 ${esc(g.loc)} <span class="loc-count">${g.items.length}</span></div>
+      <div class="location-grid">${g.items.map(cardHtml).join('')}</div>
+    </div>
+  `).join('');
+}
+
+function cardHtml(b) {
+  const thumbs = b.attachments.slice(0, 4).map(a => {
+    const ext = a.filename.split('.').pop().toLowerCase();
+    const isImg = ['jpg','jpeg','png','gif','webp','heic','heif'].includes(ext);
+    if (isImg) {
+      return `<img class="thumb" src="${BASE}/files/${encodeLabel(b.label)}/${a.filename}" alt="${esc(a.orig_name)}" loading="lazy">`;
+    }
+    return `<div class="thumb-count" title="${esc(a.orig_name)}">📎</div>`;
+  }).join('');
+
+  const more = b.attachments.length > 4
+    ? `<div class="thumb-count">+${b.attachments.length - 4}</div>` : '';
+
+  return `
+  <div class="box-card" onclick="viewBox(${b.id})">
+    <div class="card-header">
+      <div>
+        <div class="box-label">${esc(b.label)}</div>
+      </div>
+      <div class="card-actions" onclick="event.stopPropagation()">
+        <button class="btn-icon" title="Print label" onclick="openLabelModal(${b.id})">🏷</button>
+        <button class="btn-icon" title="Edit" onclick="openEditModal(${b.id})">✏️</button>
+        <button class="btn-icon danger" title="Delete" onclick="deleteBox(${b.id})">🗑</button>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="card-main">
+        ${b.contents ? `<div class="card-contents">${esc(b.contents)}</div>` : ''}
+        ${b.ai_contents ? `<div class="card-ai" style="margin-left:0;margin-right:0">${esc(b.ai_contents.substring(0,120))}${b.ai_contents.length > 120 ? '…' : ''}</div>` : ''}
+      </div>
+      <img class="card-qr" src="${BASE}/qr/${b.id}.svg" alt="QR" loading="lazy">
+    </div>
+    ${b.attachments.length ? `<div class="card-thumbs">${thumbs}${more}</div>` : ''}
+  </div>`;
+}
+
+// ── Add Modal ─────────────────────────────────────────────────────────────
+function openAddModal() {
+  editingId = null;
+  pendingFiles = [];
+  loadLocations();
+  document.getElementById('edit-title').textContent = 'Add New Box';
+  document.getElementById('edit-id').value = '';
+  document.getElementById('edit-label').value = '';
+  populateLocationSelect('');
+  document.getElementById('edit-contents').value = '';
+  document.getElementById('edit-label-size').value = '4x6';
+  document.getElementById('edit-label-orient').value = 'landscape';
+  document.getElementById('edit-ai').value = '';
+  document.getElementById('attach-preview').innerHTML = '';
+  document.getElementById('att-count').textContent = '0';
+  document.getElementById('delete-btn-row').style.display = 'none';
+  document.getElementById('btn-analyze').style.display = 'none';
+  document.getElementById('analyze-status').style.display = 'none';
+  document.getElementById('file-input').value = '';
+  openModal('edit-overlay');
+  setTimeout(() => document.getElementById('edit-label').focus(), 350);
+}
+
+// ── Edit Modal ─────────────────────────────────────────────────────────────
+async function openEditModal(id) {
+  const box = await api(`/api/boxes/${id}`);
+  await loadLocations();
+  editingId = id;
+  pendingFiles = [];
+  document.getElementById('edit-title').textContent = 'Edit Box';
+  document.getElementById('edit-id').value = id;
+  document.getElementById('edit-label').value = box.label;
+  populateLocationSelect(box.location || '');
+  document.getElementById('edit-contents').value = box.contents || '';
+  document.getElementById('edit-label-size').value = box.label_size || '4x6';
+  document.getElementById('edit-label-orient').value = box.label_orient || 'landscape';
+  document.getElementById('edit-ai').value = box.ai_contents || '';
+  document.getElementById('att-count').textContent = box.attachments.length;
+  document.getElementById('delete-btn-row').style.display = 'flex';
+  document.getElementById('file-input').value = '';
+  renderAttachPreview(box.label, box.attachments);
+  openModal('edit-overlay');
+}
+
+function renderAttachPreview(label, attachments) {
+  const grid = document.getElementById('attach-preview');
+  // Show analyze button if there are any images
+  const hasImages = attachments.some(a => {
+    const ext = a.filename.split('.').pop().toLowerCase();
+    return ['jpg','jpeg','png','gif','webp','heic','heif'].includes(ext);
+  });
+  document.getElementById('btn-analyze').style.display = hasImages ? 'flex' : 'none';
+  grid.innerHTML = attachments.map(a => {
+    const ext = a.filename.split('.').pop().toLowerCase();
+    const isImg = ['jpg','jpeg','png','gif','webp','heic','heif'].includes(ext);
+    return `
+    <div class="att-item" id="att-${a.id}">
+      ${isImg
+        ? `<img src="${BASE}/files/${encodeLabel(label)}/${a.filename}" alt="${esc(a.orig_name)}"
+               onclick="openLightbox('${BASE}/files/${encodeLabel(label)}/${a.filename}', '${esc(a.orig_name)}')">`
+        : `<div class="att-filename">📎 ${esc(a.orig_name)}</div>`
+      }
+      <button class="att-del" onclick="deleteAttachment(${a.id})" title="Delete">✕</button>
+      ${isImg ? `<button class="att-analyze" onclick="reanalyze(${a.id})" title="Re-analyze with AI">AI</button>` : ''}
+      ${a.ai_desc ? `<div class="att-ai-desc">${esc(a.ai_desc.substring(0,80))}</div>` : ''}
+    </div>`;
+  }).join('');
+  document.getElementById('att-count').textContent = attachments.length;
+}
+
+// ── Save ───────────────────────────────────────────────────────────────────
+async function saveBox() {
+  const label    = document.getElementById('edit-label').value.trim();
+  const contents = document.getElementById('edit-contents').value.trim();
+  const ai       = document.getElementById('edit-ai').value.trim();
+  const location = document.getElementById('edit-location').value.trim();
+  const label_size = document.getElementById('edit-label-size').value;
+  const label_orient = document.getElementById('edit-label-orient').value;
+
+  if (!label) { toast('Box label is required', 'error'); return; }
+
+  const btn = document.getElementById('btn-save');
+  btn.disabled = true;
+
+  try {
+    let boxId = editingId;
+
+    if (editingId) {
+      const upd = await api(`/api/boxes/${editingId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ label, contents, ai_contents: ai, location, label_size, label_orient })
+      });
+      if (upd.error) { toast(upd.error, 'error', 7000); return; }
+    } else {
+      const res = await api('/api/boxes', {
+        method: 'POST',
+        body: JSON.stringify({ label, contents, location, label_size, label_orient })
+      });
+      if (res.error) { toast(res.error, 'error', 7000); return; }
+      boxId = res.id;
+    }
+
+    // Upload pending files — no spinner, instant save
+    if (pendingFiles.length) {
+      const fd = new FormData();
+      pendingFiles.forEach(f => fd.append('files', f));
+      const uploadRes = await fetch(BASE + `/api/boxes/${boxId}/attachments`, { method: 'POST', body: fd });
+      const uploadData = await uploadRes.json();
+      if (uploadData.error) { toast(uploadData.error, 'error'); }
+    }
+
+    closeModal('edit-overlay');
+    await loadBoxes(document.getElementById('search-bar').value.trim());
+    toast(editingId ? 'Box updated!' : 'Box added!', 'success');
+  } catch (e) {
+    toast('Something went wrong', 'error');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    showUploading(false);
+  }
+}
+
+// ── File Handling ──────────────────────────────────────────────────────────
+function handleFileSelect(e) {
+  addPendingFiles(Array.from(e.target.files));
+}
+
+function addPendingFiles(files) {
+  const currentSaved = parseInt(document.getElementById('att-count').textContent) || 0;
+  const available = 10 - currentSaved - pendingFiles.length;
+  const toAdd = files.slice(0, available);
+  if (files.length > available) toast(`Max 10 attachments — ${files.length - available} skipped`, 'error');
+
+  pendingFiles.push(...toAdd);
+
+  // Show preview for new files
+  const grid = document.getElementById('attach-preview');
+  toAdd.forEach((f, i) => {
+    const idx = pendingFiles.length - toAdd.length + i;
+    const div = document.createElement('div');
+    div.className = 'att-item';
+    div.id = `pending-${idx}`;
+
+    if (f.type.startsWith('image/')) {
+      const img = document.createElement('img');
+      img.src = URL.createObjectURL(f);
+      img.alt = f.name;
+      div.appendChild(img);
+    } else {
+      const name = document.createElement('div');
+      name.className = 'att-filename';
+      name.textContent = '📎 ' + f.name;
+      div.appendChild(name);
+    }
+
+    const del = document.createElement('button');
+    del.className = 'att-del';
+    del.textContent = '✕';
+    del.onclick = () => { pendingFiles.splice(idx, 1); div.remove(); };
+    div.appendChild(del);
+
+    const pending = document.createElement('div');
+    pending.className = 'att-ai-desc';
+    pending.style.color = 'var(--accent3)';
+    pending.textContent = '⏳ pending upload…';
+    div.appendChild(pending);
+
+    grid.appendChild(div);
+  });
+
+  document.getElementById('att-count').textContent = currentSaved + pendingFiles.length;
+
+  // Show analyze button if any pending files are images
+  const hasImg = pendingFiles.some(f => f.type.startsWith('image/'));
+  if (hasImg) document.getElementById('btn-analyze').style.display = 'flex';
+}
+
+// ── Analyze all images with AI ────────────────────────────
+async function analyzeAll() {
+  if (!editingId) {
+    // Box not saved yet — need to save first
+    toast('Save the box first, then analyze', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-analyze');
+  const status = document.getElementById('analyze-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Analyzing…';
+  status.style.display = 'block';
+  status.textContent = 'Sending photos to AI — you can keep working, this runs in the background…';
+
+  try {
+    const res = await api(`/api/boxes/${editingId}/analyze_all`, { method: 'POST' });
+    if (res.error) {
+      status.textContent = '❌ ' + res.error;
+      toast(res.error, 'error');
+      return;
+    }
+
+    status.textContent = `🤖 ${res.message} Polling for results…`;
+
+    // Poll every 5 seconds for up to 10 minutes to pick up AI results as they come in
+    let polls = 0;
+    const maxPolls = 120;
+    const pollInterval = setInterval(async () => {
+      polls++;
+      try {
+        const box = await api(`/api/boxes/${editingId}`);
+        if (box.ai_contents) {
+          document.getElementById('edit-ai').value = box.ai_contents;
+        }
+        // Update any ai_desc on individual attachment previews
+        box.attachments.forEach(a => {
+          const el = document.querySelector(`#att-${a.id} .att-ai-desc`);
+          if (el && a.ai_desc) el.textContent = a.ai_desc.substring(0, 80);
+        });
+
+        // Check if all images now have ai_desc
+        const images = box.attachments.filter(a => {
+          const ext = a.filename.split('.').pop().toLowerCase();
+          return ['jpg','jpeg','png','gif','webp','heic','heif'].includes(ext);
+        });
+        const done = images.every(a => a.ai_desc && !a.ai_desc.startsWith('['));
+
+        if (done || polls >= maxPolls) {
+          clearInterval(pollInterval);
+          btn.disabled = false;
+          btn.textContent = '🤖 Analyze with AI';
+          status.textContent = done
+            ? '✅ AI analysis complete! Review the AI field above and edit if needed.'
+            : '⚠️ Analysis timed out — some images may still be processing.';
+          if (done) toast('AI analysis complete!', 'success');
+        } else {
+          const analyzed = images.filter(a => a.ai_desc).length;
+          status.textContent = `🤖 Analyzed ${analyzed}/${images.length} images…`;
+        }
+      } catch (e) {
+        // Keep polling on transient errors
+      }
+    }, 5000);
+
+  } catch (e) {
+    status.textContent = '❌ Failed to start analysis';
+    toast('Analysis failed', 'error');
+    btn.disabled = false;
+    btn.textContent = '🤖 Analyze with AI';
+  }
+}
+
+
+// ── Delete attachment (from edit modal) ───────────────────────────────────
+async function deleteAttachment(id) {
+  if (!confirm('Delete this attachment?')) return;
+  const res = await api(`/api/attachments/${id}`, { method: 'DELETE' });
+  if (res.ok) {
+    document.getElementById(`att-${id}`)?.remove();
+    const c = document.getElementById('att-count');
+    c.textContent = parseInt(c.textContent) - 1;
+    toast('Attachment deleted');
+  } else {
+    toast('Failed to delete', 'error');
+  }
+}
+
+// ── Re-analyze ─────────────────────────────────────────────────────────────
+async function reanalyze(attId) {
+  document.getElementById(`att-${attId}`)?.querySelector('.att-analyze')?.setAttribute('disabled','true');
+  showUploading(true, 'Analyzing image with AI…');
+  try {
+    const res = await api(`/api/attachments/${attId}/analyze`, { method: 'POST' });
+    if (res.ai_desc) {
+      const el = document.querySelector(`#att-${attId} .att-ai-desc`);
+      if (el) el.textContent = res.ai_desc.substring(0,80);
+      else {
+        const div = document.createElement('div');
+        div.className = 'att-ai-desc';
+        div.textContent = res.ai_desc.substring(0,80);
+        document.getElementById(`att-${attId}`).appendChild(div);
+      }
+      document.getElementById('edit-ai').value = res.ai_desc;
+      toast('AI analysis complete!', 'success');
+    }
+  } finally {
+    showUploading(false);
+    document.getElementById(`att-${attId}`)?.querySelector('.att-analyze')?.removeAttribute('disabled');
+  }
+}
+
+// ── View Modal ─────────────────────────────────────────────────────────────
+async function viewBox(id) {
+  const box = await api(`/api/boxes/${id}`);
+  if (box.error) { toast('Tote not found', 'error'); return; }
+  const body = document.getElementById('view-body');
+
+  const attHtml = box.attachments.map(a => {
+    const ext = a.filename.split('.').pop().toLowerCase();
+    const isImg = ['jpg','jpeg','png','gif','webp','heic','heif'].includes(ext);
+    return `
+    <div class="att-item">
+      ${isImg
+        ? `<img src="${BASE}/files/${encodeLabel(box.label)}/${a.filename}" alt="${esc(a.orig_name)}"
+               onclick="openLightbox('${BASE}/files/${encodeLabel(box.label)}/${a.filename}','${esc(a.orig_name)}')">`
+        : `<div class="att-filename">📎 ${esc(a.orig_name)}</div>`}
+      ${a.ai_desc ? `<div class="att-ai-desc">${esc(a.ai_desc)}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  body.innerHTML = `
+    <div class="view-top">
+      <div>
+        <div class="view-label">${esc(box.label)}</div>
+        ${box.location ? `<div class="view-location">📍 ${esc(box.location)}</div>` : ''}
+        <div class="view-meta">Label: ${box.label_size === '3x2' ? 'Small 3×2 in' : 'Large 4×6 in'} · ${box.label_orient === 'portrait' ? 'Portrait' : 'Landscape'}</div>
+      </div>
+      <img class="view-qr" src="${BASE}/qr/${box.id}.svg" alt="QR code for this tote">
+    </div>
+
+    ${box.contents ? `
+    <div class="view-section">
+      <div class="view-section-title">Contents</div>
+      <div class="view-contents">${esc(box.contents)}</div>
+    </div>` : ''}
+
+    ${box.ai_contents ? `
+    <div class="view-section">
+      <div class="view-section-title">🤖 AI Analyzed</div>
+      <div class="view-ai">${esc(box.ai_contents)}</div>
+    </div>` : ''}
+
+    ${box.attachments.length ? `
+    <div class="view-section">
+      <div class="view-section-title">Photos & Files (${box.attachments.length})</div>
+      <div class="attachments-grid">${attHtml}</div>
+    </div>` : ''}
+
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-secondary" onclick="closeModal('view-overlay')">Close</button>
+      <button class="btn btn-secondary" onclick="closeModal('view-overlay'); openLabelModal(${box.id})">🏷 Print Label</button>
+      <button class="btn btn-primary" onclick="closeModal('view-overlay'); openEditModal(${box.id})">Edit</button>
+    </div>
+  `;
+
+  openModal('view-overlay');
+}
+
+// ── Delete Box ─────────────────────────────────────────────────────────────
+async function deleteBox(id, fromModal = false) {
+  const box = allBoxes.find(b => b.id === id);
+  if (!confirm(`Delete "${box?.label || 'this box'}" and all its photos? This cannot be undone.`)) return;
+  const res = await api(`/api/boxes/${id}`, { method: 'DELETE' });
+  if (res.ok) {
+    if (fromModal) closeModal('edit-overlay');
+    await loadBoxes(document.getElementById('search-bar').value.trim());
+    toast('Box deleted', 'success');
+  } else {
+    toast('Failed to delete', 'error');
+  }
+}
+
+async function confirmDeleteBox() {
+  if (!editingId) return;
+  deleteBox(editingId, true);
+}
+
+// ── Lightbox ───────────────────────────────────────────────────────────────
+function openLightbox(src, caption) {
+  document.getElementById('lightbox-img').src = src;
+  document.getElementById('lightbox-caption').textContent = caption;
+  document.getElementById('lightbox').classList.add('open');
+}
+function closeLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightbox-img').src = '';
+}
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { closeLightbox(); closeAllModals(); }});
+
+// ── Modal helpers ──────────────────────────────────────────────────────────
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.body.style.overflow = '';
+}
+function closeAllModals() {
+  ['edit-overlay','view-overlay'].forEach(closeModal);
+}
+function closeOnBackdrop(e, id) {
+  if (e.target.id === id) closeModal(id);
+}
+
+// ── Toast ──────────────────────────────────────────────────────────────────
+let toastTimer;
+function toast(msg, type = '', ms = 3000) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.className = '', ms);
+}
+
+// ── Upload spinner ─────────────────────────────────────────────────────────
+function showUploading(show, msg = 'Uploading & analyzing with AI…') {
+  const el = document.getElementById('uploading-overlay');
+  el.classList.toggle('show', show);
+  document.getElementById('uploading-text').textContent = msg;
+}
+
+// ── Label printing ─────────────────────────────────────────────────────────
+async function openLabelModal(id) {
+  const box = await api(`/api/boxes/${id}`);
+  if (box.error) { toast(box.error, 'error'); return; }
+  document.getElementById('label-box-id').value = id;
+  document.getElementById('label-box-name').textContent =
+    box.label + (box.location ? `  ·  ${box.location}` : '');
+  document.getElementById('label-size').value = box.label_size || '4x6';
+  document.getElementById('label-orient').value = box.label_orient || 'landscape';
+  document.getElementById('label-copies').value = 1;
+  openModal('label-overlay');
+  loadPrinters();
+}
+
+async function loadPrinters() {
+  const sel = document.getElementById('label-printer');
+  const status = document.getElementById('printer-status');
+  const btn = document.getElementById('btn-send-label');
+  sel.innerHTML = '<option>Loading…</option>';
+  status.className = 'printer-status';
+  status.textContent = '';
+  let info;
+  try { info = await api('/api/printers'); }
+  catch (e) { info = { printers: [], error: 'Could not reach the ToteTracker server' }; }
+
+  if (!info.printers.length) {
+    sel.innerHTML = '<option value="">No printers available</option>';
+    status.className = 'printer-status err';
+    status.textContent = (info.error || 'No printers found') +
+      (info.server ? ` (CUPS server: ${info.server})` : '') + ' — use Preview to print from this device instead.';
+    btn.disabled = true;
+    return;
+  }
+  btn.disabled = false;
+  const saved = localStorage.getItem('tt_printer');
+  const pick = info.printers.includes(saved) ? saved : (info.default && info.printers.includes(info.default) ? info.default : info.printers[0]);
+  sel.innerHTML = info.printers.map(p => `<option value="${esc(p)}" ${p === pick ? 'selected' : ''}>${esc(p)}</option>`).join('');
+}
+
+function rememberPrinter() {
+  const v = document.getElementById('label-printer').value;
+  if (v) localStorage.setItem('tt_printer', v);
+}
+
+function previewLabel() {
+  const id = document.getElementById('label-box-id').value;
+  const size = document.getElementById('label-size').value;
+  const orient = document.getElementById('label-orient').value;
+  window.open(BASE + `/label/${id}?size=${size}&orient=${orient}`, '_blank');
+}
+
+async function sendLabel() {
+  const id = document.getElementById('label-box-id').value;
+  const printer = document.getElementById('label-printer').value;
+  const size = document.getElementById('label-size').value;
+  const orient = document.getElementById('label-orient').value;
+  const copies = parseInt(document.getElementById('label-copies').value, 10) || 1;
+  if (!printer) { toast('Choose a printer first', 'error'); return; }
+  const btn = document.getElementById('btn-send-label');
+  btn.disabled = true;
+  try {
+    const res = await api(`/api/boxes/${id}/print-label`, {
+      method: 'POST',
+      body: JSON.stringify({ printer, size, orient, copies })
+    });
+    if (res.ok && res.warning) { toast('Printed — but ' + res.warning, 'error', 10000); closeModal('label-overlay'); }
+    else if (res.ok) { toast('Label sent to printer', 'success'); closeModal('label-overlay'); }
+    else { toast(res.message || res.error || 'Print failed', 'error', 10000); }
+  } catch (e) {
+    toast('Print request failed — see `docker compose logs totetracker`', 'error', 10000);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+// ── Deep link: /<bin number> (from the QR code on a tote) opens that tote ──
+document.addEventListener('DOMContentLoaded', async () => {
+  const m = location.pathname.slice(BASE.length).match(/^\/([^\/]+)\/?$/);
+  if (!m) return;
+  const ref = decodeURIComponent(m[1]);
+  const r = await api(`/api/boxes/by-ref/${encodeURIComponent(ref)}`);
+  if (r.error) { toast(`No tote with bin number "${ref}"`, 'error', 7000); return; }
+  viewBox(r.id);
+});
+
+// ── Utils ──────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function encodeLabel(label) {
+  // Match the server-side safe folder name logic
+  return label.replace(/[^\w\-]/g, '_');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+# Never commit inventory data, photos, or secrets
+data/
+*.db
+*.db-wal
+*.db-shm
+.env
+__pycache__/
+*.pyc
+.venv/

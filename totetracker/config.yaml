@@ -1,0 +1,46 @@
+name: ToteTracker
+version: "1.0.0"
+slug: totetracker
+url: https://github.com/YOUR_GITHUB_USER/YOUR_REPO
+description: Storage tote inventory with QR codes, label printing (TSPL) and Ollama photo analysis
+arch:
+  - amd64
+  - aarch64
+init: false
+startup: application
+boot: auto
+# Stop the add-on while HA takes a backup so the SQLite database is copied consistently
+backup: cold
+# Sidebar panel inside Home Assistant (served through HA's own HTTPS)
+ingress: true
+ingress_port: 5000
+panel_icon: mdi:package-variant-closed
+panel_title: ToteTracker
+# Direct access too: tote QR codes and phones use http://<host>:5000/<bin number>
+ports:
+  5000/tcp: 5000
+ports_description:
+  5000/tcp: Direct web access (used by the QR codes on tote labels)
+# One-time import of an existing ToteTracker data folder (see DOCS.md)
+map:
+  - share:ro
+options:
+  base_url: "http://homeassistant.local:5000"
+  label_printers: "Label Printer=PRINTER_IP:9100"
+  label_dpi: 203
+  label_rotate: 90
+  tspl_gap: "0.12,0"
+  tspl_invert: false
+  ollama_url: "http://OLLAMA_HOST:11434"
+  ollama_model: "llama3.2-vision"
+schema:
+  base_url: str
+  label_printers: str
+  label_dpi: int(100,600)
+  label_rotate: int(0,359)
+  tspl_gap: str
+  tspl_density: int(0,15)?
+  tspl_invert: bool
+  ollama_url: str
+  ollama_model: str
+  ollama_api_key: password?
