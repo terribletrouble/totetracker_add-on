@@ -7,7 +7,7 @@ in Home Assistant backups.
 
 ### Install
 1. Home Assistant → **Settings → Add-ons → Add-on Store → ⋮ → Repositories**
-2. Add: `https://github.com/YOUR_GITHUB_USER/YOUR_REPO`
+2. Add: `https://github.com/terribletrouble/totetracker_add-on`
 3. Open **ToteTracker**, **Install**, review the **Configuration** tab (see `totetracker/DOCS.md`), **Start**,
    and enable **Show in sidebar**.
 
