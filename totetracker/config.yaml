@@ -1,7 +1,7 @@
 name: ToteTracker
 version: "1.0.0"
 slug: totetracker
-url: https://github.com/YOUR_GITHUB_USER/YOUR_REPO
+url: https://github.com/terribletrouble/totetracker_add-on
 description: Storage tote inventory with QR codes, label printing (TSPL) and Ollama photo analysis
 arch:
   - amd64
