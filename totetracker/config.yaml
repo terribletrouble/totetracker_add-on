@@ -1,5 +1,5 @@
 name: ToteTracker
-version: "1.0.0"
+version: "1.0.1"
 slug: totetracker
 url: https://github.com/terribletrouble/totetracker_add-on
 description: Storage tote inventory with QR codes, label printing (TSPL) and Ollama photo analysis
@@ -16,6 +16,7 @@ ingress: true
 ingress_port: 5000
 panel_icon: mdi:package-variant-closed
 panel_title: ToteTracker
+panel_admin: false
 # Direct access too: tote QR codes and phones use http://<host>:5000/<bin number>
 ports:
   5000/tcp: 5000
